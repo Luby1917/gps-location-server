@@ -1,0 +1,33 @@
+version: '3.1'
+services:
+  geo-server:
+    image: luby1917/geo-location-server:0.0.1
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL:postgres://telemetry_user:telemetry_password@postgres/telemetry
+    ports:
+      - 8080:8080
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: telemetry_password
+      POSTGRES_USER: telemetry_user
+      POSTGRES_DB: telemetry
+    ports:
+      - 5433:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  grafana:
+    image: grafana/grafana:7.5.10
+    ports:
+      - 3000:3000
+    environment:
+     - GF_INSTALL_PLUGINS=alexandra-trackmap-panel,pr0ps-trackmap-panel,grafana-worldmap-panel
+    volumes:
+     - grafana_data:/var/lib/grafana
+  
+
+volumes:
+    postgres_data:
+    grafana_data:
