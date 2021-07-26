@@ -7,7 +7,8 @@ extern crate dotenv;
 
 use dotenv::dotenv;
 
-use actix_web::{get, post,  middleware, App, HttpResponse, HttpServer, Responder};
+use actix_web::{web, get, post,  middleware, App, HttpResponse, HttpServer, Responder};
+
 use std::{env, io};
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
@@ -16,6 +17,7 @@ use r2d2::{Pool, PooledConnection};
 mod constants;
 mod schema;
 mod geo;
+mod ws;
 
 pub type DBPool = Pool<ConnectionManager<PgConnection>>;
 pub type DBPooledConnection = PooledConnection<ConnectionManager<PgConnection>>;
@@ -47,9 +49,11 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-        .data(pool.clone())
+            .data(pool.clone())
             .wrap(middleware::Logger::default())
+            .service(web::resource("/ws/").route(web::get().to(ws::index)))
             .service(geo::create)
+            //.route("/ws/", web::get().to(ws::index))
             .service(echo)
     })
     .bind("0.0.0.0:8080")?
