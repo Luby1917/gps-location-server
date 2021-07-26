@@ -1,0 +1,8 @@
+CREATE TABLE geo_locations (
+  d TIMESTAMP WITH TIME ZONE PRIMARY KEY,
+  id VARCHAR NOT NULL ,
+  lat REAL,
+  lon REAL,
+  sat INTEGER,
+  s REAL
+)
