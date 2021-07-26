@@ -1,5 +1,4 @@
-use actix_web::{post, HttpResponse};
-
+use actix_web::{post,web,  HttpResponse};
 use serde::{Serialize, Deserialize};
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use actix_web::web::{Data, Json, Path};
@@ -8,10 +7,11 @@ use diesel::result::Error;
 use diesel::{ExpressionMethods, Insertable, Queryable, RunQueryDsl};
 use crate::{DBPool, DBPooledConnection};
 
-use super::schema::geo;
-use diesel::query_dsl::methods::{FilterDsl, LimitDsl, OrderDsl};
-use std::str::FromStr;
+use super::schema::geo_locations;
 
+
+
+use crate::constants::{APPLICATION_JSON, CONNECTION_POOL_ERROR};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Geo {
@@ -34,20 +34,20 @@ impl Geo {
             s: s,
         }
     }
-    /*
+    
     pub fn to_db(&self) -> GeoDB {
         GeoDB {
             id: self.id.clone(),
-            d: Utc.from_utc_datetime(&self.d),
+            d: DateTime::naive_utc(&self.d),
             lat: self.lat,
             lon: self.lon,
             sat: self.sat,
             s: self.s,
         }
-    }*/
+    }
 }
 
-#[table_name = "geo"]
+#[table_name = "geo_locations"]
 #[derive(Queryable, Insertable)]
 pub struct GeoDB {
     pub id: String,
@@ -74,14 +74,23 @@ impl GeoDB {
 
 
 #[post("/geo")]
-pub async fn create(geo_req: Json<Geo>) -> HttpResponse {
-    let geo = Geo {
-        id: geo_req.id.clone(),
-        d: Utc::now(),
-        lat: geo_req.lat,
-        lon: geo_req.lon,
-        sat: geo_req.sat,
-        s: geo_req.s,
-    };
-    HttpResponse::Created().json(geo)
+pub async fn create(geo_req: Json<Geo>, pool: Data<DBPool>) -> HttpResponse {
+
+    let conn = pool.get().expect(CONNECTION_POOL_ERROR);
+
+    let geo = web::block(move || create_geo(geo_req.to_db(), &conn)).await;
+
+    match geo {
+        Ok(geo) => HttpResponse::Created()
+            .content_type(APPLICATION_JSON)
+            .json(geo),
+        _ => HttpResponse::NoContent().await.unwrap(),
+    }
+}
+
+
+fn create_geo (geo: GeoDB, conn: &DBPooledConnection) -> Result<Geo, Error> {
+    use crate::schema::geo_locations::dsl::*;
+    let _ = diesel::insert_into(geo_locations).values(&geo).execute(conn);
+    Ok(geo.to_geo())
 }

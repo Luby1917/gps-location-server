@@ -3,6 +3,10 @@ name = "geo-location-server"
 version = "0.1.0"
 edition = "2018"
 
+[[bin]]
+name = "geo"
+path = "src/main.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -14,3 +18,4 @@ diesel = { version = "1.4.4", features = ["postgres", "r2d2", "chrono", "uuid"] 
 chrono = { version = "0.4.11", features  = ["serde"] }
 r2d2 = "0.8.8"
 r2d2-diesel = "1.0.0"
+dotenv = "0.15.0"

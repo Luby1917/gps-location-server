@@ -3,6 +3,9 @@ extern crate actix_web;
 #[macro_use]
 extern crate diesel;
 
+extern crate dotenv;
+
+use dotenv::dotenv;
 
 use actix_web::{get, post,  middleware, App, HttpResponse, HttpServer, Responder};
 use std::{env, io};
@@ -10,9 +13,9 @@ use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
 use r2d2::{Pool, PooledConnection};
 
-mod geo;
+mod constants;
 mod schema;
-
+mod geo;
 
 pub type DBPool = Pool<ConnectionManager<PgConnection>>;
 pub type DBPooledConnection = PooledConnection<ConnectionManager<PgConnection>>;
@@ -30,18 +33,21 @@ async fn echo(req_body: String) -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+
+    dotenv().ok();
+
     env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     env_logger::init();
 
-    //let database_url = env::var("DATABASE_URL").expect("DATABASE_URL");
-    //let manager = ConnectionManager::<PgConnection>::new(database_url);
-    //let pool = r2d2::Pool::builder()
-    //    .build(manager)
-    //    .expect("Failed to create pool");
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL");
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let pool = r2d2::Pool::builder()
+        .build(manager)
+        .expect("Failed to create pool");
 
     HttpServer::new(move || {
         App::new()
-    //    .data(pool.clone())
+        .data(pool.clone())
             .wrap(middleware::Logger::default())
             .service(geo::create)
             .service(echo)
